@@ -7,15 +7,20 @@ The ThinkPHP5.1 Auth Package
 ## 配置
 ### 公共配置
 ```
-// auth配置
+// auth配置,在config目录下新建一个 auth.php 配置文件
 config = [
-    'auth_on'                 =>   1, // 权限开关
-    'auth_type'                  =>  2, // 认证方式，1为实时认证；2为登录认证。
-    'auth_group'               =>  'auth_group',  // 用户组数据表名
+    'auth_on'            =>   1, // 权限开关
+    'auth_type'          =>   2, // 认证方式，1为实时认证；2为登录认证。
+    'auth_group'         =>  'auth_group',  // 用户组数据表名
     'auth_group_access'  =>  'auth_group_access', // 用户-用户组关系表
-    'auth_group_rule'       =>  'auth_group_rule', // 用户组-权限规则关系表
-    'auth_rule'                   =>  'auth_rule', // 权限规则表
-    'auth_user'                  =>  'user', // 用户信息表
+    'auth_group_rule'    =>  'auth_group_rule', // 用户组-权限规则关系表
+    'auth_rule'          =>  'auth_rule', // 权限规则表
+    'auth_user'          =>  'user', // 用户信息表
+    // 不需要验证权限的
+    'public'             => [
+            'index/index/index',
+            'index/index/login'
+    ]
 ];
 ```
 
@@ -122,7 +127,7 @@ if($auth->check(1, 'show_button')){// 第一个参数用户ID,第二个参数是
 ```
 
 Auth类也可以对节点进行认证，我们只要将规则名称，定义为节点名称就行了。 
-可以在公共控制器Base中定义_initialize方法
+可以在公共控制器Base中定义initialize方法
 ```
 <?php
 namespace app\common\controller;
@@ -157,6 +162,8 @@ class Base extends Common
 这时候我们可以在数据库中添加的节点规则， 格式为： “模块/控制器名称/方法名称”
 需要做权限控制的控制器都继承该基类
 
+
+为了方便使用我们为Auth类拓展了几个实用方法
 ```
     $auth = new Auth();
 
@@ -221,7 +228,35 @@ class Base extends Common
      */
     $auth->delUserGroupsRelation($uids, $groups_id);
 
-    
+    /**
+     * 按group_id是否有权限，返回所有权限节点
+     * @param $group_id
+     *返回数据结构
+        [
+            [
+                "rid"      => NULL
+                "group_id" => NULL（为空说明该组对此节点没有权限,有权限将会显示相应的group_id值）
+                "id"       =>    节点ID
+                "name"     =>  节点名
+                "title"    => 标题
+                "type"     =>  类型  0普通节点  1菜单节点
+                "pid"      =>   父级ID
+                "status"   => 状态 是否禁用
+                "icon'     => 图标
+                "child"    => 子节点
+            ],
+            ...
+        ]
+     */
+    $auth->getAuthRulesByGroup($group_id);
+
+    /**
+     * 按用户查询所有该用户有权限的菜单节点
+     * @param $uid 用户ID
+     * @return array
+     */
+    $auth->getAuthMenuByUser($uid)
+
 
 
 
