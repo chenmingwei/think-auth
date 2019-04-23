@@ -1,0 +1,8 @@
+{
+  "name": "imingwei/think-auth",
+  "description": "A sThinkPHP5.1 Auth Package",
+  "require": {
+    "php": "^5.6",
+    "another-vendor/package": "1.0.0"
+  }
+}
