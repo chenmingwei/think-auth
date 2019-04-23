@@ -500,21 +500,6 @@ class Auth
         return $authRules;
     }
 
-    /**
-     * 获得用户资料,根据自己的情况读取数据库
-     */
-    protected function getUserInfo($uid)
-    {
-        static $userinfo = [];
 
-        $user = Db::name($this->config['auth_user']);
-        // 获取用户表主键
-        $_pk = is_string($user->getPk()) ? $user->getPk() : 'uid';
-        if (!isset($userinfo[$uid])) {
-            $userinfo[$uid] = $user->where($_pk, $uid)->find();
-        }
-
-        return $userinfo[$uid];
-    }
 
 }
