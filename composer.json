@@ -1,5 +1,5 @@
 {
-  "name": "imingwei/think-auth",
+  "name": "chenmingwei/think-auth",
   "description": "A sThinkPHP5.1 Auth Package",
   "require": {
     "php": "^5.6",
