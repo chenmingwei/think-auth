@@ -2,7 +2,8 @@
 The ThinkPHP5.1 Auth Package
 
 ## 安装
-> 
+> composer require chenmingwei/think-auth
+
 
 ## 配置
 ### 公共配置
