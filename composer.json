@@ -1,6 +1,6 @@
 {
   "name": "chenmingwei/think-auth",
-  "description": "auth package for thinkphp5",
+  "description": "基于用户组的 节点/菜单 权限管理类 部分代码参考 5ini99 / think-auth",
   "homepage": "https://github.com/chenmingwei/think-auth",
   "license": "Apache-2.0",
   "minimum-stability": "stable",
