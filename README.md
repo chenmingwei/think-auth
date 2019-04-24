@@ -1,5 +1,7 @@
 # think-addons
 The ThinkPHP5.1 Auth Package
+一个ThinkPHP5.1  基于用户组的节点/菜单 权限管理类
+部分代码参考   5ini99 / think-auth    
 
 ## 安装
 > composer require chenmingwei/think-auth
