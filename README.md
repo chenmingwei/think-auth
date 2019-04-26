@@ -64,6 +64,7 @@ CREATE TABLE `think_auth_group` (
   `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
   `title` char(100) NOT NULL DEFAULT '' COMMENT '标题',
   `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态',
+  `sort` int(11) NOT NULL DEFAULT '0' COMMENT '排序',
   PRIMARY KEY (`id`),
   UNIQUE KEY `UNIQUE` (`title`)
 ) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8 COMMENT='用户组表'
