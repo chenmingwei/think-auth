@@ -474,7 +474,7 @@ class Auth
         $cacheKey = '_auth_rules_list_' . $uid;
         if($this->config['auth_type'] == 2){
             $cacheVal =  cache($cacheKey);
-            if($chcheVal) {
+            if( $cacheVal) {
                 return$cacheVal;
             }
         }
