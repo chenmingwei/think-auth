@@ -37,6 +37,8 @@ config = [
 - name：验证规则, 
 - title：规则中文名称 
 - type: 0普通权限节点； 1菜单权限节点
+- pid : 父级ID
+- sort: 排序
 - status 状态：为1正常，为0禁用，
 - icon：图标
 -------------------------------------------------
@@ -47,8 +49,9 @@ CREATE TABLE `think_auth_rule` (
   `title` char(20) NOT NULL DEFAULT '' COMMENT '规则中文名称',
   `type` tinyint(4) NOT NULL DEFAULT '0' COMMENT '0:普通权限节点；1:菜单权限节点',
   `pid` int(11) NOT NULL DEFAULT '0' COMMENT '父级ID',
+  `sort` int(11) NOT NULL DEFAULT '0' COMMENT '排序',
   `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态：为1正常，为0禁用',
-  `icon` varchar(80) DEFAULT NULL COMMENT '图标',
+  `icon` varchar(80) NOT NULL DEFAULT '' COMMENT '图标',
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT='权限规则表'
