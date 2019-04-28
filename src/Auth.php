@@ -190,7 +190,7 @@ class Auth
     ...
     ]
      */
-    protected function getGroups($uid = 0)
+    public function getGroups($uid = 0)
     {
         if ($uid == 0) {
             return $this->getAllGroup();
