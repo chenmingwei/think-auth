@@ -24,8 +24,8 @@ use think\facade\Request;
 -------------------------------------------------
  think_auth_rule，规则表，
 - id:主键，
-- name：验证规则, 
-- title：规则中文名称 
+- name：验证规则,
+- title：规则中文名称
 - type: 0普通权限节点； 1菜单权限节点
 - pid : 父级ID
 - sort: 排序
@@ -47,9 +47,9 @@ CREATE TABLE `think_auth_rule` (
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8 COMMENT='权限规则表'
 
 -------------------------------------------------
-- think_auth_group 用户组表， 
-- id：主键， 
-- title: 用户组中文名称， 
+- think_auth_group 用户组表，
+- id：主键，
+- title: 用户组中文名称，
 - status：用户组状态  0禁用  1启用
 -------------------------------------------------
  DROP TABLE IF EXISTS `think_auth_group`;
@@ -130,7 +130,7 @@ class Auth
         $this->config['auth_group_rule'] = Config::get('database.prefix') . $this->config['auth_group_rule'];
         $this->config['auth_rule'] = Config::get('database.prefix') . $this->config['auth_rule'];
         $this->config['auth_user'] = Config::get('database.prefix') . $this->config['auth_user'];
-            // 初始化request
+        // 初始化request
         $this->request = Request::instance();
     }
 
@@ -154,7 +154,7 @@ class Auth
      * @param $name string  需要验证的规则列表
      * @return bool         通过验证返回true;失败返回false
      */
-    public function check($uid, $name='')
+    public function check($uid, $name = '')
     {
         // 是否关闭权限验证
         if (!$this->config['auth_on']) {
@@ -162,17 +162,16 @@ class Auth
         }
         // 配置不需要验证的路由
         $noauth = $this->config['public'];
-        if($noauth){
-            foreach($noauth as $item){
-                if($name == $item)
+        if ($noauth) {
+            foreach ($noauth as $item) {
+                if ($name == $item)
                     return true;
             }
         }
         // 已获取的权限
         $authLists = $this->getAuthList($uid);
-//        return $authLists;
-        foreach($authLists as $item){
-            if($name == $item['name'])
+        foreach ($authLists as $item) {
+            if ($name == $item['name'])
                 return true;
         }
         return false;
@@ -191,8 +190,11 @@ class Auth
     ...
     ]
      */
-    protected function getGroups($uid)
+    protected function getGroups($uid = 0)
     {
+        if ($uid == 0) {
+            return $this->getAllGroup();
+        }
         static $groups = [];
         if (isset($groups[$uid])) {
             return $groups[$uid];
@@ -212,16 +214,17 @@ class Auth
      * @throws \think\db\exception\ModelNotFoundException
      * @throws \think\exception\DbException
      */
-    public function addGroups($title = null, $status=1){
-        if(!$title){
+    public function addGroups($title = null, $status = 1)
+    {
+        if (!$title) {
             exception('缺少参数:title');
         }
         $res = Db::table($this->config['auth_group'])
             ->where("title", $title)->find();
-        if($res) return false;
+        if ($res) return false;
 
         return Db::table($this->config['auth_group'])
-            ->insert(['title'=>$title, 'status'=>$status]);
+            ->insert(['title' => $title, 'status' => $status]);
     }
 
     /**
@@ -232,11 +235,12 @@ class Auth
      * @throws \think\Exception
      * @throws \think\exception\PDOException
      */
-    public function changeGroupsStatus($group_id = null, $status = 0){
-        if(!$group_id){
+    public function changeGroupsStatus($group_id = null, $status = 0)
+    {
+        if (!$group_id) {
             exception('缺少参数:group_id');
         }
-        return Db::table($this->config['auth_group'])->where("id = {$group_id}")->update(['status'=> $status]);
+        return Db::table($this->config['auth_group'])->where("id = {$group_id}")->update(['status' => $status]);
     }
 
     /**
@@ -246,13 +250,14 @@ class Auth
      * @return int|string
      * @throws \Exception
      */
-    public function setAuthOfGroup($group_id, $rules){
-        if(!$group_id || !$rules){
+    public function setAuthOfGroup($group_id, $rules)
+    {
+        if (!$group_id || !$rules) {
             exception('缺少参数');
         }
         $data = [];
-        if(is_array($rules)){
-            foreach($rules as $k => $v){
+        if (is_array($rules)) {
+            foreach ($rules as $k => $v) {
                 $data[$k]['group_id'] = $group_id;
                 $data[$k]['rid'] = $v;
             }
@@ -273,7 +278,8 @@ class Auth
      * @throws \think\db\exception\ModelNotFoundException
      * @throws \think\exception\DbException
      */
-    public function getGroupsByUid($uid){
+    public function getGroupsByUid($uid)
+    {
         // 转换表名
         $auth_group_access = $this->config['auth_group_access'];
         $auth_group = $this->config['auth_group'];
@@ -289,7 +295,8 @@ class Auth
      *  按组查询用户
      *   @param $uid
      */
-    public function getUsersByGroup($group_id){
+    public function getUsersByGroup($group_id)
+    {
         // 转换表名
         $auth_group_access = $this->config['auth_group_access'];
         $auth_user = $this->config['auth_user'];
@@ -302,19 +309,46 @@ class Auth
     }
 
     /**
+     * 获取所有用户组数据
+     * @return array|\PDOStatement|string|\think\Collection
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    private function getAllGroup()
+    {
+        $auth_group = $this->config['auth_group'];
+        return Db::table($auth_group)->order('sort')->select();
+    }
+
+    /**
+     * 获取所有权限节点
+     * @return array|\PDOStatement|string|\think\Collection
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function getAllRules()
+    {
+        $auth_rule = $this->config['auth_rule'];
+        return Db::table($auth_rule)->order('sort')->select();
+    }
+
+    /**
      * 为用户添加用户组
      * @param $uid
      * @param $groups_id  int|array
      * @return int|string
      * @throws \Exception
      */
-    public function addGroupsByUid($uid, $groups_id){
-        if(!$uid || !$groups_id){
+    public function addGroupsByUid($uid, $groups_id)
+    {
+        if (!$uid || !$groups_id) {
             exception('缺少参数');
         }
         $data = [];
-        if(is_array($groups_id)){
-            foreach($groups_id as $k => $v){
+        if (is_array($groups_id)) {
+            foreach ($groups_id as $k => $v) {
                 $data[$k]['uid'] = $uid;
                 $data[$k]['group_id'] = $v;
             }
@@ -334,13 +368,14 @@ class Auth
      * @return int|string
      * @throws \Exception
      */
-    public function addUsersByGroup($group_id, $uids){
-        if(!$uids || !$group_id){
+    public function addUsersByGroup($group_id, $uids)
+    {
+        if (!$uids || !$group_id) {
             exception('缺少参数');
         }
         $data = [];
-        if(is_array($uids)){
-            foreach($uids as $k => $v){
+        if (is_array($uids)) {
+            foreach ($uids as $k => $v) {
                 $data[$k]['group_id'] = $group_id;
                 $data[$k]['uid'] = $v;
             }
@@ -361,8 +396,10 @@ class Auth
      * @throws \think\Exception
      * @throws \think\exception\PDOException
      */
-    public function delUserGroupsRelation($uids, $groups_id){
-        if(!$uids || !$groups_id){
+
+    public function delUserGroupsRelation($uids, $groups_id)
+    {
+        if (!$uids || !$groups_id) {
             exception('缺少参数');
         }
         return Db::table($this->config['auth_group_access'])
@@ -381,8 +418,10 @@ class Auth
      * @throws \think\Exception
      * @throws \think\exception\PDOException
      */
-    public function delRulesByGroup($groups_id, $rules){
-        if(!$uids || !$groups_id){
+
+    public function delRulesByGroup($groups_id, $rules)
+    {
+        if (!$uids || !$groups_id) {
             exception('缺少参数');
         }
         return Db::table($this->config['auth_group_rule'])
@@ -394,14 +433,12 @@ class Auth
     }
 
     //添加权限节点
-    public function addAuthRule($data){
-
-    }
+    public function addAuthRule($data)
+    { }
 
     //删除权限节点
-    public function delAuthRule($rid){
-
-    }
+    public function delAuthRule($rid)
+    { }
 
     /**
      * 按用户组查询出权限节点
@@ -421,16 +458,17 @@ class Auth
             ["status"] => 状态 是否禁用
         }
      */
-    public function getAuthRulesByGroup($group_id){
+    public function getAuthRulesByGroup($group_id)
+    {
         // 数据表名处理
         $auth_group_rule = $this->config['auth_group_rule'];
         $auth_rule = $this->config['auth_rule'];
         // 子查询SQL
         $sql = Db::table($auth_group_rule)
-            ->where('group_id',$group_id)->buildSql();
+            ->where('group_id', $group_id)->buildSql();
         // SQL查询
         $data = Db::table($sql . ' a')
-            ->join($auth_rule, "a.rid = {$auth_rule}.id",'right')
+            ->join($auth_rule, "a.rid = {$auth_rule}.id", 'right')
             ->select();
         return $this->getTree($data);
     }
@@ -443,14 +481,15 @@ class Auth
      * @throws \think\db\exception\ModelNotFoundException
      * @throws \think\exception\DbException
      */
-    public function getAuthMenuByUser($uid){
+    public function getAuthMenuByUser($uid)
+    {
         $cacheKey = '_user_menu_tree_data_' . $uid;
         $cacheVal =  cache($cacheKey);
-        if($cacheVal) return $cacheVal;
+        if ($cacheVal) return $cacheVal;
         $data = $this->getAuthList($uid);
         $temp = [];
-        foreach($data as $v){
-            if($v['type'] == 1) $temp[] = $v;
+        foreach ($data as $v) {
+            if ($v['type'] == 1) $temp[] = $v;
         }
         $temp = $this->getTree($temp);
         cache($cacheKey, $temp);
@@ -458,7 +497,8 @@ class Auth
     }
 
     // 无限分类树结构
-    protected function getTree($data, $pid = 0){
+    protected function getTree($data, $pid = 0)
+    {
         $tree = [];
         foreach ($data as $k => $v) {
             if ($v['pid'] == $pid) {
@@ -476,7 +516,8 @@ class Auth
      * @throws \think\exception\DbException
      *
      */
-    protected function getGroupsSql($uid){
+    protected function getGroupsSql($uid)
+    {
         // 转换表名
         $auth_group_access = $this->config['auth_group_access'];
         $auth_group = $this->config['auth_group'];
@@ -484,7 +525,7 @@ class Auth
         $sql = Db::view($auth_group_access, 'uid,group_id')
             ->view($auth_group, 'title', "{$auth_group_access}.group_id={$auth_group}.id", 'LEFT')
             ->where("{$auth_group_access}.uid='{$uid}' and {$auth_group}.status='1'")
-//            ->fetchSql(true)
+            //            ->fetchSql(true)
             ->buildSql();
         return $sql;
     }
@@ -501,10 +542,10 @@ class Auth
     {
         // 走缓存
         $cacheKey = '_auth_rules_list_' . $uid;
-        if($this->config['auth_type'] == 2){
+        if ($this->config['auth_type'] == 2) {
             $cacheVal =  cache($cacheKey);
-            if( $cacheVal) {
-                return$cacheVal;
+            if ($cacheVal) {
+                return $cacheVal;
             }
         }
         // 数据表名处理
@@ -523,12 +564,9 @@ class Auth
             ->group("{$auth_group_rule}.rid")
             ->select();
         // 是否走缓存
-        if($this->config['auth_type'] == 2){
+        if ($this->config['auth_type'] == 2) {
             cache($cacheKey, $authRules);
         }
         return $authRules;
     }
-
-
-
 }
