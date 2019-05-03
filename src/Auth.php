@@ -104,15 +104,30 @@ class Auth
     protected $request;
 
     //默认配置
-    protected $config = [
-        'auth_on' => 1, // 权限开关
-        'auth_type' => 2, // 认证方式，1为实时认证；2为登录认证。
-        'auth_group' => 'erp_auth_group', // 用户组数据表名
-        'auth_group_access' => 'erp_auth_group_access', // 用户-用户组关系表
-        'auth_group_rule' => 'erp_auth_group_rule', // 用户组-权限规则关系表
-        'auth_rule' => 'erp_auth_rule', // 权限规则表
-        'auth_user' => 'erp_user', // 用户信息表
+    protected  $config = [
+        'auth_on'            =>   1, // 权限开关
+        'auth_type'          =>   2, // 认证方式，1为实时认证；2为登录认证。
+        'root_id'              =>  1, // 超级管理员ID
+        'auth_group'         =>  'auth_group',  // 用户组数据表名
+        'auth_group_access'  =>  'auth_group_access', // 用户-用户组关系表
+        'auth_group_rule'    =>  'auth_group_rule', // 用户组-权限规则关系表
+        'auth_rule'          =>  'auth_rule', // 权限规则表
+        'auth_user'          =>  'user', // 用户信息表
+        // 不需要验证权限的
+        'public'             => [
+            'oa/order.index/index'
+        ]
     ];
+    //    protected $config = [
+    //        'auth_on' => 1, // 权限开关
+    //        'auth_type' => 2, // 认证方式，1为实时认证；2为登录认证。
+    //        'auth_group' => 'auth_group', // 用户组数据表名
+    //        'auth_group_access' => 'auth_group_access', // 用户-用户组关系表
+    //        'auth_group_rule' => 'auth_group_rule', // 用户组-权限规则关系表
+    //        'auth_rule' => 'auth_rule', // 权限规则表
+    //        'auth_user' => 'user', // 用户信息表
+    //    ];
+
 
     /**
      * 类架构函数
@@ -154,10 +169,17 @@ class Auth
      * @param $name string  需要验证的规则列表
      * @return bool         通过验证返回true;失败返回false
      */
-    public function check($uid, $name = '')
+    public function check($name, $uid = 0)
     {
         // 是否关闭权限验证
         if (!$this->config['auth_on']) {
+            return true;
+        }
+        if ($uid == 0) {
+            $uid = session('userinfo.id');
+        }
+        // 超级管理员用户
+        if ($this->config['root_id'] == $uid) {
             return true;
         }
         // 配置不需要验证的路由
@@ -190,20 +212,16 @@ class Auth
     ...
     ]
      */
-    public function getGroups($uid = 0)
-    {
-        if ($uid == 0) {
-            return $this->getAllGroup();
-        }
-        static $groups = [];
-        if (isset($groups[$uid])) {
-            return $groups[$uid];
-        }
-        $user_groups = Db::query($this->getGroupsSql($uid));
-        $groups[$uid] = $user_groups ?: [];
-
-        return $groups[$uid];
-    }
+    //    protected function getGroups($uid)
+    //    {
+    //        static $groups = [];
+    //        if (isset($groups[$uid])) {
+    //            return $groups[$uid];
+    //        }
+    //        $user_groups = Db::query($this->getGroupsSql($uid));
+    //        $groups[$uid] = $user_groups ?: [];
+    //        return $groups[$uid];
+    //    }
 
     /**
      * 添加一个权限组
@@ -315,10 +333,21 @@ class Auth
      * @throws \think\db\exception\ModelNotFoundException
      * @throws \think\exception\DbException
      */
-    private function getAllGroup()
+    public function getAllGroup($uid = 0)
     {
         $auth_group = $this->config['auth_group'];
-        return Db::table($auth_group)->order('sort')->select();
+        if ($uid == 0) {
+            return Db::table($auth_group)->order('sort')->select();
+        }
+        $auth_group_access = $this->config['auth_group_access'];
+        // 子查询SQL
+        $sql = Db::table($auth_group_access)
+            ->where('uid', $uid)->buildSql();
+        // SQL查询
+        return  Db::table($sql . ' a')
+            ->join($auth_group, "a.group_id = {$auth_group}.id", 'right')
+            ->order("{$auth_group}.id")
+            ->select();
     }
 
     /**
@@ -328,23 +357,35 @@ class Auth
      * @throws \think\db\exception\ModelNotFoundException
      * @throws \think\exception\DbException
      */
-    public function getAllRules()
+    public function getAllRules($tree = true)
     {
         $auth_rule = $this->config['auth_rule'];
-        return Db::table($auth_rule)->order('sort')->select();
+        $data = Db::table($auth_rule)->order('sort')->select();
+        if ($tree) {
+            return $this->getTree($data);
+        } else {
+            return $data;
+        }
     }
 
     /**
-     * 为用户添加用户组
+     *  * 为用户添加用户组
      * @param $uid
-     * @param $groups_id  int|array
+     * @param $groups_id  int | array
+     * @param bool $struat  是否删除原数据
      * @return int|string
-     * @throws \Exception
+     * @throws \think\Exception
+     * @throws \think\exception\PDOException
      */
-    public function addGroupsByUid($uid, $groups_id)
+    public function addGroupsByUid($uid, $groups_id, $struat = false)
     {
         if (!$uid || !$groups_id) {
             exception('缺少参数');
+        }
+        $auth_group_access = $this->config['auth_group_access'];
+        $model = Db::table($auth_group_access);
+        if ($struat) {
+            $model->where('uid', '=', $uid)->delete();
         }
         $data = [];
         if (is_array($groups_id)) {
@@ -357,8 +398,7 @@ class Auth
             $data[0]['group_id'] = $groups_id;
         }
 
-        return Db::table($this->config['auth_group_access'])
-            ->insertAll($data, true);
+        return $model->insertAll($data, true);
     }
 
     /**
@@ -434,11 +474,21 @@ class Auth
 
     //添加权限节点
     public function addAuthRule($data)
-    { }
+    {
+        return Db::table($this->config['auth_rule'])->insert($data);
+    }
 
     //删除权限节点
     public function delAuthRule($rid)
-    { }
+    {
+        return Db::table($this->config['auth_rule'])->delete($rid);
+    }
+
+    // 查询某个节点
+    public function getRuleByID($id)
+    {
+        return Db::table($this->config['auth_rule'])->get($id);
+    }
 
     /**
      * 按用户组查询出权限节点
