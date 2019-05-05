@@ -232,17 +232,17 @@ class Auth
      * @throws \think\db\exception\ModelNotFoundException
      * @throws \think\exception\DbException
      */
-    public function addGroups($title = null, $status = 1)
+    public function addGroup($data)
     {
-        if (!$title) {
+        if (!isset($data['title'])) {
             exception('缺少参数:title');
         }
         $res = Db::table($this->config['auth_group'])
-            ->where("title", $title)->find();
+            ->where("title", $data['title'])->find();
         if ($res) return false;
 
         return Db::table($this->config['auth_group'])
-            ->insert(['title' => $title, 'status' => $status]);
+            ->insert($data);
     }
 
     /**
@@ -313,17 +313,28 @@ class Auth
      *  按组查询用户
      *   @param $uid
      */
-    public function getUsersByGroup($group_id)
+    public function getUsersByGroup($group_id, $status = true)
     {
         // 转换表名
         $auth_group_access = $this->config['auth_group_access'];
         $auth_user = $this->config['auth_user'];
         // SQL生成
-        $data = Db::view($auth_group_access, 'uid,group_id')
-            ->view($auth_user, 'id,name,niekname', "{$auth_group_access}.uid={$auth_user}.id")
-            ->where("{$auth_group_access}.group_id='{$group_id}'")
-            ->select();
-        return $data;
+        if ($status) {
+            $data = Db::view($auth_group_access, 'uid,group_id')
+                ->view($auth_user, 'id,username,nick', "{$auth_group_access}.uid={$auth_user}.id")
+                ->where("{$auth_group_access}.group_id='{$group_id}'")
+                ->select();
+            return $data;
+        } else {
+            $sql = Db::table($auth_group_access)
+                ->where('group_id', $group_id)->buildSql();
+            return  Db::table($auth_user, 'id,username,nick')
+                ->join($sql . ' a', "a.uid = {$auth_user}.id", 'left')
+                ->where("{$auth_user}.status = 1")
+                ->field("{$auth_user}.id,{$auth_user}.nick,a.group_id")
+                ->order("{$auth_user}.id")
+                ->select();
+        }
     }
 
     /**
@@ -377,7 +388,7 @@ class Auth
      * @throws \think\Exception
      * @throws \think\exception\PDOException
      */
-    public function addGroupsByUid($uid, $groups_id, $struat = false)
+    public function addGroupsOfUid($uid, $groups_id, $struat = false)
     {
         if (!$uid || !$groups_id) {
             exception('缺少参数');
@@ -408,10 +419,14 @@ class Auth
      * @return int|string
      * @throws \Exception
      */
-    public function addUsersByGroup($group_id, $uids)
+    public function addUsersOfGroup($group_id, $uids, $struat = false)
     {
         if (!$uids || !$group_id) {
             exception('缺少参数');
+        }
+        $model = Db::table($this->config['auth_group_access']);
+        if ($struat) {
+            $model->where('group_id', '=', $group_id)->delete();
         }
         $data = [];
         if (is_array($uids)) {
@@ -424,8 +439,7 @@ class Auth
             $data[0]['uid'] = $uids;
         }
 
-        return Db::table($this->config['auth_group_access'])
-            ->insertAll($data, true);
+        return $model->insertAll($data, true);
     }
 
     /**
@@ -478,6 +492,12 @@ class Auth
         return Db::table($this->config['auth_rule'])->insert($data);
     }
 
+    //修改权限节点
+    public function updateAuthRule($id, $data)
+    {
+        return Db::table($this->config['auth_rule'])->where('id', $id)->update($data);
+    }
+
     //删除权限节点
     public function delAuthRule($rid)
     {
@@ -488,6 +508,12 @@ class Auth
     public function getRuleByID($id)
     {
         return Db::table($this->config['auth_rule'])->get($id);
+    }
+
+    // 查询子节点
+    public function getChildRuleByPID($pid)
+    {
+        return Db::table($this->config['auth_rule'])->where('pid', '=', $pid)->select();
     }
 
     /**
@@ -508,7 +534,7 @@ class Auth
             ["status"] => 状态 是否禁用
         }
      */
-    public function getAuthRulesByGroup($group_id)
+    public function getAuthRulesByGroup($group_id, $tree = true)
     {
         // 数据表名处理
         $auth_group_rule = $this->config['auth_group_rule'];
@@ -519,8 +545,14 @@ class Auth
         // SQL查询
         $data = Db::table($sql . ' a')
             ->join($auth_rule, "a.rid = {$auth_rule}.id", 'right')
+            ->order("{$auth_rule}.sort")
+            ->field("a.group_id,{$auth_rule}.id,{$auth_rule}.id as value,{$auth_rule}.pid,{$auth_rule}.title as name")
             ->select();
-        return $this->getTree($data);
+        if ($tree) {
+            return $this->getTree($data);
+        } else {
+            return $data;
+        }
     }
 
     /**
