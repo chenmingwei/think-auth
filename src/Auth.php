@@ -619,23 +619,29 @@ class Auth
      */
     public function getAuthMenuByUser($uid)
     {
+
         $cacheKey = '_user_menu_tree_data_' . $uid;
         $cacheVal =  cache($cacheKey);
         if ($cacheVal) return $cacheVal;
+        // 数据表名处理
+        $auth_group_rule = $this->config['auth_group_rule'];
+        $auth_group = $this->config['auth_group'];
         $auth_rule = $this->config['auth_rule'];
-        $data = [];
-        // 超级管理员用户
-        if ($this->config['root_id'] == $uid) {
-            $data = Db::table($auth_rule)->where('status', '=', 1)->select();
-        } else {
-            $data = $this->getAuthList($uid);
-        }
+        $auth_group_access = $this->config['auth_group_access'];
 
-        $temp = [];
-        foreach ($data as $v) {
-            if ($v['type'] == 1) $temp[] = $v;
-        }
-        $temp = $this->getTree($temp);
+        // 生成根据用户查询出所有有效权限组ID 用于子查询的SQL
+        $UserGroupsIds = Db::table($this->getGroupsSql($uid) .  'usergroup')
+            ->field('usergroup.group_id')
+            ->buildSql();
+        // 一条SQL查出用户所有有效的权限
+        $authRules = Db::view($auth_group_rule, 'rid')
+            ->view($auth_rule, 'id,name,title,icon,type,pid', "{$auth_group_rule}.rid = {$auth_rule}.id")
+            ->where("{$auth_group_rule}.group_id in {$UserGroupsIds}")
+            ->where("{$auth_rule}.status = 1")
+            ->group("{$auth_group_rule}.rid")
+            ->select();
+
+        $temp = $this->getTree($authRules);
         cache($cacheKey, $temp);
         return $temp;
     }
